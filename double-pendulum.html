@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Double Pendulum</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <style>
+    .page { max-width: 1000px; }
+    .canvas-2d { width: 100%; height: 100%; min-height: 550px; }
+    #canvas { width: 100%; height: 100%; display: block; }
+    .param-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .param-control { background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 10px; padding: 16px; }
+    .param-control label { display: block; font-size: 10px; font-weight: 500; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+    .param-control .value { font-size: 24px; font-weight: 700; color: var(--accent); font-family: "JetBrains Mono", monospace; margin-bottom: 10px; }
+    .param-control input[type="range"] { width: 100%; accent-color: var(--accent); height: 6px; }
+    .view-options { display: flex; gap: 8px; flex-wrap: wrap; }
+    .view-options label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; color: var(--fg); padding: 8px 14px; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 8px; transition: all 0.15s; }
+    .view-options label:hover { background: var(--bg); }
+    .view-options input[type="radio"] { display: none; }
+    .view-options label:has(input:checked) { background: var(--accent); color: var(--bg); }
+    .readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+    .readout { background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px; }
+    .readout .label { font-size: 10px; font-weight: 500; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.6px; }
+    .readout .value { font-size: 18px; font-weight: 600; font-family: "JetBrains Mono", monospace; color: var(--fg); margin-top: 6px; }
+    .readout .value.accent { color: var(--accent); }
+    .section-title { font-size: 11px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--card-border); }
+    .controls-section { margin-bottom: 24px; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    @media (max-width: 768px) { .controls { grid-template-columns: 1fr; } }
+
+    /* Language selector */
+    header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+    header h1 { flex: 1; min-width: 200px; }
+    .lang-selector { flex-shrink: 0; }
+    .lang-selector select { background: var(--bg-elevated); border: 1px solid var(--card-border); color: var(--fg); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; cursor: pointer; }
+    .lang-selector select:focus { outline: none; border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a href="index.html" class="back-link" aria-label="Back to simulations">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="back">Back</span>
+      </a>
+      <h1 data-i18n="title">Double Pendulum</h1>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+    <div class="sim-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvas" class="canvas-2d"></canvas>
+      </div>
+      <div class="controls">
+        <section class="controls-section">
+          <div class="section-title" data-i18n="physicalParams">Physical Parameters</div>
+          <div class="param-grid">
+            <div class="param-control">
+              <label data-i18n="mass1">Mass 1 (kg)</label>
+              <div class="value" id="m1Val">1.0</div>
+              <input type="range" id="m1Input" min="0.1" max="5" step="0.1" value="1" aria-label="Mass 1">
+            </div>
+            <div class="param-control">
+              <label data-i18n="mass2">Mass 2 (kg)</label>
+              <div class="value" id="m2Val">1.0</div>
+              <input type="range" id="m2Input" min="0.1" max="5" step="0.1" value="1" aria-label="Mass 2">
+            </div>
+            <div class="param-control">
+              <label data-i18n="length1">Length 1 (m)</label>
+              <div class="value" id="L1Val">1.0</div>
+              <input type="range" id="L1Input" min="0.2" max="2" step="0.1" value="1" aria-label="Length 1">
+            </div>
+            <div class="param-control">
+              <label data-i18n="length2">Length 2 (m)</label>
+              <div class="value" id="L2Val">1.0</div>
+              <input type="range" id="L2Input" min="0.2" max="2" step="0.1" value="1" aria-label="Length 2">
+            </div>
+            <div class="param-control">
+              <label data-i18n="gravity">Gravity (m/s²)</label>
+              <div class="value" id="gVal">9.81</div>
+              <input type="range" id="gInput" min="1" max="20" step="0.5" value="9.81" aria-label="Gravity">
+            </div>
+          </div>
+        </section>
+
+        <section class="controls-section">
+          <div class="section-title" data-i18n="initialConditions">Initial Conditions</div>
+          <div class="param-grid">
+            <div class="param-control">
+              <label data-i18n="theta1_0">θ₁₀ (deg)</label>
+              <div class="value" id="th1Val">90</div>
+              <input type="range" id="th1Input" min="-180" max="180" step="1" value="90" aria-label="Initial angle 1">
+            </div>
+            <div class="param-control">
+              <label data-i18n="theta2_0">θ₂₀ (deg)</label>
+              <div class="value" id="th2Val">90</div>
+              <input type="range" id="th2Input" min="-180" max="180" step="1" value="90" aria-label="Initial angle 2">
+            </div>
+            <div class="param-control">
+              <label data-i18n="omega1_0">ω₁₀ (deg/s)</label>
+              <div class="value" id="w1Val">0</div>
+              <input type="range" id="w1Input" min="-360" max="360" step="10" value="0" aria-label="Initial angular velocity 1">
+            </div>
+            <div class="param-control">
+              <label data-i18n="omega2_0">ω₂₀ (deg/s)</label>
+              <div class="value" id="w2Val">0</div>
+              <input type="range" id="w2Input" min="-360" max="360" step="10" value="0" aria-label="Initial angular velocity 2">
+            </div>
+          </div>
+        </section>
+
+        <section class="controls-section">
+          <div class="section-title" data-i18n="simulation">Simulation</div>
+          <div class="param-grid">
+            <div class="param-control">
+              <label data-i18n="timeStep">Time Step (s)</label>
+              <div class="value" id="dtVal">0.005</div>
+              <input type="range" id="dtInput" min="0.001" max="0.05" step="0.001" value="0.005" aria-label="Integration time step">
+            </div>
+            <div class="param-control">
+              <label data-i18n="trailLength">Trail Length</label>
+              <div class="value" id="trailVal">500</div>
+              <input type="range" id="trailInput" min="0" max="2000" step="50" value="500" aria-label="Trail length">
+            </div>
+          </div>
+          <div class="view-options" style="margin-top: 12px;">
+            <label><input type="radio" name="view" value="pendulum" checked><span data-i18n="viewPendulum">Pendulum View</span></label>
+            <label><input type="radio" name="view" value="phase"><span data-i18n="viewPhase">Phase Space (θ₁ vs ω₁)</span></label>
+            <label><input type="radio" name="view" value="poincare"><span data-i18n="viewPoincare">Poincaré Section</span></label>
+            <label><input type="radio" name="view" value="energy"><span data-i18n="viewEnergy">Energy</span></label>
+          </div>
+        </section>
+
+        <section class="controls-section">
+          <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span data-i18n="readouts">Readouts</span>
+            <div class="btn-group">
+              <button class="btn btn-primary" id="playPauseBtn" aria-label="Play simulation">
+                <svg width="16" height="16" viewBox="0 0 24 24" id="playIcon"><path d="M5 4v16l14-8-14-8z"/></svg>
+                <span id="playText" data-i18n="play">Play</span>
+              </button>
+              <button class="btn btn-secondary" id="resetBtn" aria-label="Reset simulation">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-9 9z"/><path d="M3 3v5h5"/></svg>
+                <span data-i18n="reset">Reset</span>
+              </button>
+              <button class="btn btn-secondary" id="clearBtn" aria-label="Clear trails">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span data-i18n="clear">Clear</span>
+              </button>
+            </div>
+          </div>
+          <div class="readouts">
+            <div class="readout">
+              <div class="label" data-i18n="totalEnergy">Total Energy</div>
+              <div class="value accent" id="energyVal">—</div>
+            </div>
+            <div class="readout">
+              <div class="label" data-i18n="kineticEnergy">Kinetic Energy</div>
+              <div class="value" id="kineticVal">—</div>
+            </div>
+            <div class="readout">
+              <div class="label" data-i18n="potentialEnergy">Potential Energy</div>
+              <div class="value" id="potentialVal">—</div>
+            </div>
+            <div class="readout">
+              <div class="label" data-i18n="energyDrift">Energy Drift</div>
+              <div class="value accent" id="driftVal">—</div>
+            </div>
+            <div class="readout">
+              <div class="label" data-i18n="theta1">θ₁</div>
+              <div class="value" id="th1Readout">—</div>
+            </div>
+            <div class="readout">
+              <div class="label" data-i18n="theta2">θ₂</div>
+              <div class="value" id="th2Readout">—</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="double-pendulum.js"></script>
+  <script>
+    // Initialize language for this page
+    const pageTranslations = window.I18N?.PAGES?.['double-pendulum'] || {};
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+
+    // Handle language change for dynamic text
+    window.onLanguageChange = function(lang) {
+      // Update play/pause button text
+      const playText = document.getElementById('playText');
+      if (playText) {
+        const isPlaying = playText.textContent.includes('Pause') || playText.textContent.includes('Pausa') || playText.textContent.includes('Pause') || playText.textContent.includes('Wiedergabe');
+        playText.textContent = window.I18N.t(isPlaying ? 'pause' : 'play', lang);
+      }
+    };
+  </script>
+</body>
+</html>

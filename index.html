@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Physics Simulations</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <style>
+    /* Index-specific overrides */
+    .page { padding-block: 48px 64px; max-width: 900px; }
+    header { text-align: center; margin-bottom: 48px; }
+
+    /* Search bar */
+    .search-wrapper { position: relative; max-width: 600px; margin: 0 auto 40px; }
+    .search-box { position: relative; display: flex; align-items: center; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 12px; padding: 0 16px; transition: border-color 0.2s, box-shadow 0.2s; }
+    .search-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); }
+    .search-icon { width: 20px; height: 20px; color: var(--fg-muted); flex-shrink: 0; }
+    .search-box input { flex: 1; border: none; background: transparent; color: var(--fg); font: inherit; font-size: 16px; padding: 14px 12px 14px 0; outline: none; }
+    .search-box input::placeholder { color: var(--fg-muted); }
+    .clear-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; background: var(--bg); border-radius: 6px; color: var(--fg-muted); cursor: pointer; transition: all 0.15s; }
+    .clear-btn:hover { background: var(--accent); color: var(--bg); }
+    .clear-btn svg { width: 16px; height: 16px; }
+
+    /* Search results dropdown */
+    .search-results { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); overflow: hidden; z-index: 100; max-height: 400px; overflow-y: auto; }
+    .search-result-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; text-decoration: none; color: var(--fg); transition: background 0.15s; border-bottom: 1px solid var(--card-border); }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: var(--bg); }
+    .search-result-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 8px; color: var(--accent); flex-shrink: 0; }
+    .search-result-info { flex: 1; min-width: 0; }
+    .search-result-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .search-result-desc { font-size: 12px; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .search-result-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+    .search-result-tag { font-size: 10px; padding: 2px 6px; background: var(--bg); border: 1px solid var(--card-border); border-radius: 4px; color: var(--fg-muted); }
+    .search-no-results { padding: 24px; text-align: center; color: var(--fg-muted); font-size: 14px; }
+    .search-hint { font-size: 11px; color: var(--fg-muted); margin-top: 8px; text-align: center; }
+    .search-hint kbd { background: var(--bg); border: 1px solid var(--card-border); padding: 2px 6px; border-radius: 4px; font-family: inherit; font-size: 10px; }
+
+    /* Hide grid when searching */
+    .sim-grid.filtered { display: none; }
+
+    @media (max-width: 600px) {
+      .search-result-desc { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <span class="badge" data-i18n="physicsLab">Physics Lab</span>
+      <h1 data-i18n="title">Physics Simulations</h1>
+      <p class="subtitle" data-i18n="subtitle">Interactive visualizations for exploring fundamental physics concepts. Click a simulation to begin.</p>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="search-wrapper">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="search" id="searchInput" placeholder="Search simulations..." data-i18n-placeholder="searchPlaceholder" aria-label="Search simulations" autocomplete="off">
+        <button id="clearSearch" class="clear-btn" aria-label="Clear search" data-i18n-aria-label="clearSearch" hidden>
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="searchResults" class="search-results" hidden></div>
+    </div>
+
+    <div class="sim-grid" id="simGrid">
+      <!-- Simulation cards will be rendered here by JavaScript -->
+    </div>
+
+    <footer>
+      <p data-i18n="builtWith">Built with vanilla HTML, CSS & JS • No frameworks • Open source</p>
+    </footer>
+  </main>
+
+  <script>
+    // Wait for DOM and i18n to be ready
+    function initApp() {
+      // Simulation data with translation keys
+      const simulations = [
+      {
+        id: 'pendulum',
+        titleKey: 'sim_pendulum',
+        descKey: 'desc_pendulum',
+        tagKeys: ['tag_mechanics', 'tag_oscillations', 'tag_energy'],
+        icon: 'pendulum',
+        href: 'pendulum.html'
+      },
+      {
+        id: 'projectile',
+        titleKey: 'sim_projectile',
+        descKey: 'desc_projectile',
+        tagKeys: ['tag_kinematics', 'tag_vectors', 'tag_drag'],
+        icon: 'projectile',
+        href: 'projectile.html'
+      },
+      {
+        id: 'spherical-pendulum',
+        titleKey: 'sim_spherical_pendulum',
+        descKey: 'desc_spherical_pendulum',
+        tagKeys: ['tag_mechanics', 'tag_lagrangian', 'tag_3d_dynamics'],
+        icon: 'double-pendulum',
+        href: 'spherical-pendulum.html'
+      },
+      {
+        id: 'mass-spring',
+        titleKey: 'sim_mass_spring',
+        descKey: 'desc_mass_spring',
+        tagKeys: ['tag_oscillations', 'tag_damping', 'tag_resonance', 'tag_shm'],
+        icon: 'spring',
+        href: 'mass-spring.html'
+      },
+      {
+        id: 'double-pendulum',
+        titleKey: 'sim_double_pendulum',
+        descKey: 'desc_double_pendulum',
+        tagKeys: ['tag_chaos', 'tag_nonlinear_dynamics', 'tag_lagrangian'],
+        icon: 'double-pendulum',
+        href: 'double-pendulum.html'
+      },
+      {
+        id: 'lunar',
+        titleKey: 'sim_lunar',
+        descKey: 'desc_lunar',
+        tagKeys: ['tag_astronomy', 'tag_celestial_mechanics', 'tag_ephemeris'],
+        icon: 'orbit',
+        href: 'lunar.html'
+      },
+      {
+        id: 'orrery',
+        titleKey: 'sim_orrery',
+        descKey: 'desc_orrery',
+        tagKeys: ['tag_astronomy', 'tag_celestial_mechanics', 'tag_orrery', 'tag_planets'],
+        icon: 'orbit',
+        href: 'orrery.html'
+      },
+      {
+        id: 'hydrogen',
+        titleKey: 'sim_hydrogen',
+        descKey: 'desc_hydrogen',
+        tagKeys: ['tag_quantum_mechanics', 'tag_atomic_physics', 'tag_orbitals'],
+        icon: 'electric',
+        href: 'hydrogen.html'
+      },
+      {
+        id: 'coupled-oscillators',
+        titleKey: 'sim_coupled_oscillators',
+        descKey: 'desc_coupled_oscillators',
+        tagKeys: ['tag_waves', 'tag_normal_modes', 'tag_oscillations', 'tag_coupled_systems'],
+        icon: 'spring',
+        href: 'coupled-oscillators.html'
+      },
+      {
+        id: 'horizon',
+        titleKey: 'sim_horizon',
+        descKey: 'desc_horizon',
+        tagKeys: ['tag_geodesy', 'tag_atmospheric_optics', 'tag_navigation'],
+        icon: 'orbit',
+        href: 'horizon.html'
+      }
+    ];
+
+    const icons = {
+      pendulum: `<svg viewBox="0 0 24 24"><path d="M12 3v7m0 0l-4 4m4-4l4 4"/><circle cx="12" cy="18" r="3"/></svg>`,
+      projectile: `<svg viewBox="0 0 24 24"><path d="M4 20l10-15 10 15"/><path d="M14 20v-8a4 4 0 0 0-8 0v8"/></svg>`,
+      spring: `<svg viewBox="0 0 24 24"><path d="M4 12c0-1.5.5-2.5 1.5-3.5C7 7 9 6 12 6s5 1 6.5 2.5c1 1 1.5 2 1.5 3.5"/><path d="M4 12h16"/><rect x="2" y="14" width="20" height="4" rx="1"/></svg>`,
+      'double-pendulum': `<svg viewBox="0 0 24 24"><path d="M12 3v5m0 0l-3 3m3-3l3 3"/><circle cx="9" cy="15" r="2.5"/><path d="M12 8v5m0 0l-3 3m3-3l3 3"/><circle cx="15" cy="20" r="2.5"/></svg>`,
+      orbit: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><ellipse cx="12" cy="12" rx="10" ry="4"/><circle cx="12" cy="12" r="3"/><circle cx="20" cy="12" r="2"/></svg>`,
+      electric: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5 5l1.5 1.5M17.5 17.5l1.5 1.5M5 19l1.5-1.5M17.5 6.5l1.5-1.5"/></svg>`
+    };
+
+    const grid = document.getElementById('simGrid');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+    const searchResults = document.getElementById('searchResults');
+
+    // Get page translations
+    const pageTranslations = window.I18N?.PAGES?.index || {};
+
+    // Get translation for current language
+    function getTranslation(key) {
+      const lang = window.I18N?.currentLanguage?.() || 'en';
+      if (pageTranslations[lang] && pageTranslations[lang][key]) {
+        return pageTranslations[lang][key];
+      }
+      // Fallback to English
+      if (pageTranslations.en && pageTranslations.en[key]) {
+        return pageTranslations.en[key];
+      }
+      return key;
+    }
+
+    // Render all cards initially
+    function renderCards(sims = simulations) {
+      grid.innerHTML = '';
+      sims.forEach(sim => {
+        const card = document.createElement('a');
+        card.className = 'sim-card';
+        card.href = sim.href;
+        card.setAttribute('data-sim-id', sim.id);
+
+        const title = getTranslation(sim.titleKey);
+        const desc = getTranslation(sim.descKey);
+        const tags = sim.tagKeys.map(k => getTranslation(k)).join('');
+
+        card.innerHTML = `
+          <div class="sim-icon" aria-hidden="true">${icons[sim.icon] || icons.pendulum}</div>
+          <div class="sim-content">
+            <h2 class="sim-title">${title}</h2>
+            <p class="sim-desc">${desc}</p>
+            <div class="sim-tags" aria-label="Topics">
+              ${sim.tagKeys.map(k => `<span class="tag">${getTranslation(k)}</span>`).join('')}
+            </div>
+          </div>
+          <div class="sim-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+
+    // Search functionality
+    function searchSimulations(query) {
+      if (!query.trim()) return simulations;
+
+      const terms = query.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+
+      return simulations.filter(sim => {
+        const searchText = [
+          getTranslation(sim.titleKey),
+          getTranslation(sim.descKey),
+          ...sim.tagKeys.map(k => getTranslation(k))
+        ].join(' ').toLowerCase();
+
+        return terms.every(term => searchText.includes(term));
+      });
+    }
+
+    function renderSearchResults(results) {
+      if (results.length === 0) {
+        searchResults.innerHTML = `<div class="search-no-results">${getTranslation('noResults')}</div>`;
+        return;
+      }
+
+      searchResults.innerHTML = results.map(sim => `
+        <a href="${sim.href}" class="search-result-item" data-sim-id="${sim.id}">
+          <div class="search-result-icon" aria-hidden="true">${icons[sim.icon] || icons.pendulum}</div>
+          <div class="search-result-info">
+            <div class="search-result-title">${getTranslation(sim.titleKey)}</div>
+            <div class="search-result-desc">${getTranslation(sim.descKey)}</div>
+            <div class="search-result-tags">
+              ${sim.tagKeys.map(k => `<span class="search-result-tag">${getTranslation(k)}</span>`).join('')}
+            </div>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    // Re-render when language changes
+    window.onLanguageChange = function(lang) {
+      renderCards();
+      const query = searchInput.value;
+      if (query.trim()) {
+        const results = searchSimulations(query);
+        renderSearchResults(results);
+      }
+      // Update placeholder and aria-labels
+      searchInput.placeholder = getTranslation('searchPlaceholder');
+      clearSearch.setAttribute('aria-label', getTranslation('clearSearch'));
+    };
+
+    let searchDebounce = null;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        const query = searchInput.value;
+        const results = searchSimulations(query);
+
+        if (query.trim()) {
+          clearSearch.hidden = false;
+          searchResults.hidden = false;
+          grid.classList.add('filtered');
+          renderSearchResults(results);
+        } else {
+          clearSearch.hidden = true;
+          searchResults.hidden = true;
+          grid.classList.remove('filtered');
+          renderCards();
+        }
+      }, 100);
+    });
+
+    clearSearch.addEventListener('click', () => {
+      searchInput.value = '';
+      clearSearch.hidden = true;
+      searchResults.hidden = true;
+      grid.classList.remove('filtered');
+      renderCards();
+      searchInput.focus();
+    });
+
+    // Hide results when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !clearSearch.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.hidden = true;
+      }
+    });
+
+    // Keyboard navigation for search results
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        searchResults.hidden = true;
+        searchInput.blur();
+      } else if (e.key === 'ArrowDown' && !searchResults.hidden) {
+        e.preventDefault();
+        const firstLink = searchResults.querySelector('a');
+        if (firstLink) firstLink.focus();
+      }
+    });
+
+    searchResults.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        searchResults.hidden = true;
+        searchInput.focus();
+      }
+    });
+
+    // Initial render
+    renderCards();
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const focused = document.activeElement;
+        if (focused.classList.contains('sim-card')) {
+          e.preventDefault();
+          focused.click();
+        }
+      }
+
+      // Focus search with Ctrl/Cmd + K
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInput.focus();
+      }
+    });
+
+    // Initialize language for this page
+    window.I18N?.initLanguage(); // Ensure language is initialized
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+  }
+
+  // Run when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+  } else {
+    initApp();
+  }
+  </script>
+</body>
+</html>

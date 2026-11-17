@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Horizon Visibility</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <style>
+    .page { max-width: 1000px; }
+    .canvas-2d { width: 100%; height: 100%; min-height: 550px; }
+    #canvas { width: 100%; height: 100%; display: block; }
+    .param-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+    .param-control { background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 10px; padding: 16px; }
+    .param-control label { display: block; font-size: 10px; font-weight: 500; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+    .param-control .value { font-size: 24px; font-weight: 700; color: var(--accent); font-family: "JetBrains Mono", monospace; margin-bottom: 10px; }
+    .param-control input[type="range"] { width: 100%; accent-color: var(--accent); height: 6px; }
+    .param-control select { width: 100%; background: var(--bg); border: 1px solid var(--card-border); color: var(--fg); border-radius: 6px; padding: 8px; font-family: inherit; font-size: 13px; }
+    .view-options { display: flex; gap: 8px; flex-wrap: wrap; }
+    .view-options label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; color: var(--fg); padding: 8px 14px; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 8px; transition: all 0.15s; }
+    .view-options label:hover { background: var(--bg); }
+    .view-options input[type="radio"] { display: none; }
+    .view-options label:has(input:checked) { background: var(--accent); color: var(--bg); }
+    .readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 16px; }
+    .readout { background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px; }
+    .readout .label { font-size: 10px; font-weight: 500; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.6px; }
+    .readout .value { font-size: 18px; font-weight: 600; font-family: "JetBrains Mono", monospace; color: var(--fg); margin-top: 6px; }
+    .readout .value.accent { color: var(--accent); }
+    .section-title { font-size: 11px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--card-border); }
+    .controls-section { margin-bottom: 24px; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .preset-btn { padding: 10px 18px; font-size: 12px; font-weight: 500; font-family: "Space Grotesk", sans-serif; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 8px; color: var(--fg); cursor: pointer; transition: all 0.15s ease; }
+    .preset-btn:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+    .info-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; padding: 16px; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 10px; margin-top: 8px; }
+    .info-item { display: flex; flex-direction: column; gap: 4px; }
+    .info-item .label { font-size: 10px; font-weight: 500; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.6px; }
+    .info-item .value { font-size: 16px; font-weight: 600; font-family: "JetBrains Mono", monospace; color: var(--fg); }
+    .info-item .value.accent { color: var(--accent); }
+
+    /* Language selector */
+    header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+    header h1 { flex: 1; min-width: 200px; }
+    .lang-selector { flex-shrink: 0; }
+    .lang-selector select { background: var(--bg-elevated); border: 1px solid var(--card-border); color: var(--fg); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; cursor: pointer; }
+    .lang-selector select:focus { outline: none; border-color: var(--accent); }
+
+    @media (max-width: 768px) {
+      .controls { grid-template-columns: 1fr; }
+      header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a href="index.html" class="back-link" aria-label="Back to simulations">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="back">Back</span>
+      </a>
+      <h1 data-i18n="title">Horizon Visibility</h1>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+    <div class="sim-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvas" class="canvas-2d"></canvas>
+      </div>
+      <div class="controls">
+        <section class="controls-section">
+          <div class="section-title" data-i18n="observer">Observer</div>
+          <div class="param-grid">
+            <div class="param-control">
+              <label data-i18n="eyeHeight">Eye Height (m)</label>
+              <div class="value" id="obsHeightVal">1.70</div>
+              <input type="range" id="obsHeightInput" min="0" max="1000" step="0.1" value="1.7" aria-label="Observer eye height">
+            </div>
+            <div class="param-control">
+              <label data-i18n="latitude">Latitude (°)</label>
+              <div class="value" id="latVal">45.0</div>
+              <input type="range" id="latInput" min="-90" max="90" step="0.1" value="45" aria-label="Observer latitude">
+            </div>
+            <div class="param-control">
+              <label data-i18n="longitude">Longitude (°)</label>
+              <div class="value" id="lonVal">0.0</div>
+              <input type="range" id="lonInput" min="-180" max="180" step="0.1" value="0" aria-label="Observer longitude">
+            </div>
+          </div>
+        </section>
+
+        <section class="controls-section">
+          <div class="section-title" data-i18n="targetObject">Target Object (Optional)</div>
+          <div class="param-grid">
+            <div class="param-control">
+              <label data-i18n="targetHeight">Target Height (m)</label>
+              <div class="value" id="targetHeightVal">0</div>
+              <input type="range" id="targetHeightInput" min="0" max="5000" step="1" value="0" aria-label="Target object height">
+            </div>
+            <div class="param-control">
+              <label data-i18n="targetDistance">Target Distance (km)</label>
+              <div class="value" id="targetDistVal">0</div>
+              <input type="range" id="targetDistInput" min="0" max="500" step="1" value="0" aria-label="Target distance">
+            </div>
+          </div>
+        </section>
+
+        <section class="controls-section">
+          <div class="section-title" data-i18n="atmosphere">Atmosphere</div>
+          <div class="param-grid">
+            <div class="param-control">
+              <label data-i18n="refractionModel">Refraction Model</label>
+              <select id="refractionSelect">
+                <option value="standard" data-i18n="stdRefraction">Standard (k=4/3)</option>
+                <option value="none" data-i18n="noRefraction">No Refraction (k=1)</option>
+                <option value="super" data-i18n="superRefraction">Super-refraction (k=7/6)</option>
+                <option value="sub" data-i18n="subRefraction">Sub-refraction (k=1.15)</option>
+                <option value="custom" data-i18n="customK">Custom k-factor</option>
+              </select>
+            </div>
+            <div class="param-control" id="customKControl" style="display: none;">
+              <label data-i18n="customKFactor">Custom k-factor</label>
+              <div class="value" id="customKVal">1.33</div>
+              <input type="range" id="customKInput" min="1" max="2" step="0.01" value="1.33" aria-label="Custom k-factor">
+            </div>
+            <div class="param-control">
+              <label data-i18n="temperature">Temperature (°C)</label>
+              <div class="value" id="tempVal">15</div>
+              <input type="range" id="tempInput" min="-40" max="50" step="1" value="15" aria-label="Air temperature">
+            </div>
+            <div class="param-control">
+              <label data-i18n="pressure">Pressure (hPa)</label>
+              <div class="value" id="pressureVal">1013</div>
+              <input type="range" id="pressureInput" min="800" max="1100" step="1" value="1013" aria-label="Air pressure">
+            </div>
+          </div>
+        </section>
+
+        <section class="controls-section">
+          <div class="section-title" data-i18n="quickPresets">Quick Presets</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="preset-btn" id="presetSeaLevel" data-i18n="presetSeaLevel">Sea Level (1.7m)</button>
+            <button class="preset-btn" id="presetBuilding" data-i18n="presetBuilding">Building (50m)</button>
+            <button class="preset-btn" id="presetMountain" data-i18n="presetMountain">Mountain (2000m)</button>
+            <button class="preset-btn" id="presetPlane" data-i18n="presetPlane">Airplane (10km)</button>
+            <button class="preset-btn" id="presetISS" data-i18n="presetISS">ISS (400km)</button>
+          </div>
+        </section>
+
+        <section class="controls-section">
+          <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span data-i18n="view">View</span>
+            <div class="btn-group">
+              <button class="btn btn-secondary" id="resetBtn" aria-label="Reset view">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-9 9z"/><path d="M3 3v5h5"/></svg>
+                <span data-i18n="resetView">Reset View</span>
+              </button>
+            </div>
+          </div>
+          <div class="view-options" style="margin-top: 12px;">
+            <label><input type="radio" name="view" value="profile" checked><span data-i18n="sideProfile">Side Profile</span></label>
+            <label><input type="radio" name="view" value="map"><span data-i18n="topDownMap">Top-Down Map</span></label>
+            <label><input type="radio" name="view" value="comparison"><span data-i18n="refractionComparison">Refraction Comparison</span></label>
+          </div>
+        </section>
+
+        <section class="controls-section">
+          <div class="section-title" data-i18n="results">Results</div>
+          <div class="info-panel" role="region" aria-label="Visibility calculations">
+            <div class="info-item">
+              <div class="label" data-i18n="horizonDistance">Horizon Distance</div>
+              <div class="value accent" id="horizonDistVal">— km</div>
+            </div>
+            <div class="info-item">
+              <div class="label" data-i18n="dipAngle">Dip Angle</div>
+              <div class="value" id="dipAngleVal">—</div>
+            </div>
+            <div class="info-item">
+              <div class="label" data-i18n="hiddenHeight">Hidden Height</div>
+              <div class="value accent" id="hiddenHeightVal">— m</div>
+            </div>
+            <div class="info-item">
+              <div class="label" data-i18n="visibleHeight">Visible Height</div>
+              <div class="value" id="visibleHeightVal">— m</div>
+            </div>
+            <div class="info-item">
+              <div class="label" data-i18n="targetVisible">Target Visible?</div>
+              <div class="value accent" id="targetVisibleVal">—</div>
+            </div>
+            <div class="info-item">
+              <div class="label" data-i18n="effEarthRadius">Effective Earth Radius</div>
+              <div class="value" id="effRadiusVal">— km</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="horizon.js"></script>
+  <script>
+    // Initialize language for this page
+    const pageTranslations = window.I18N?.PAGES?.horizon || {};
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+  </script>
+</body>
+</html>

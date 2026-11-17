@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Lunar Motion — ELP 2000-85</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <style>
+    .page { max-width: 1100px; }
+    .canvas-2d { width: 100%; height: 100%; min-height: 500px; }
+    #canvas { width: 100%; height: 100%; display: block; }
+    .date-input-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .date-input-group input { flex: 1; min-width: 160px; }
+    .date-input-group label { font-size: 12px; color: var(--fg-muted); }
+    .preset-dates { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .preset-btn { padding: 6px 12px; font-size: 11px; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+    .preset-btn:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .orbital-elements { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; }
+    .orbital-element { background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 8px; padding: 12px; }
+    .orbital-element .label { font-size: 10px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .orbital-element .value { font-size: 16px; font-family: "JetBrains Mono", monospace; color: var(--accent); margin-top: 4px; }
+    @media (max-width: 768px) { .controls { grid-template-columns: 1fr; } }
+
+    /* Language selector */
+    header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+    header h1 { flex: 1; min-width: 200px; }
+    .lang-selector { flex-shrink: 0; }
+    .lang-selector select { background: var(--bg-elevated); border: 1px solid var(--card-border); color: var(--fg); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; cursor: pointer; }
+    .lang-selector select:focus { outline: none; border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a href="index.html" class="back-link" aria-label="Back to simulations">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="back">Back</span>
+      </a>
+      <h1 data-i18n="title">Lunar Motion</h1>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+    <div class="sim-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvas" class="canvas-2d"></canvas>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <span class="control-label" style="margin-bottom: 4px;" data-i18n="dateInput">Date Input</span>
+          <div class="date-input-group">
+            <div>
+              <label data-i18n="ddmmyyyy">DD-MM-YYYY</label>
+              <input type="text" id="dateInput" placeholder="16-11-2026" aria-label="Date in DD-MM-YYYY format">
+            </div>
+            <div>
+              <label data-i18n="julianDay">Julian Day</label>
+              <input type="text" id="jdInput" placeholder="2461000.5" aria-label="Julian Day number">
+            </div>
+          </div>
+          <div class="preset-dates" id="presetDates">
+            <!-- Preset buttons will be populated by JavaScript -->
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="timeScale">Time Scale</span> <span class="control-value" id="timeScaleVal">100×</span></label>
+          <input type="range" id="timeScale" min="0" max="500" step="10" value="100" aria-label="Time scale factor">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="viewScale">View Scale</span> <span class="control-value" id="viewScaleVal">1×</span></label>
+          <input type="range" id="viewScale" min="0.1" max="5" step="0.1" value="1" aria-label="Orbit view scale">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="showOrbitTrail">Show Orbit Trail</span> <input type="checkbox" id="showTrail" checked style="margin-left: 8px;"></label>
+        </div>
+
+        <div class="control-group btn-group" style="justify-content: flex-end;">
+          <button class="btn btn-primary" id="playPauseBtn" aria-label="Play simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24" id="playIcon"><path d="M5 4v16l14-8-14-8z"/></svg>
+            <span id="playText" data-i18n="play">Play</span>
+          </button>
+          <button class="btn btn-secondary" id="resetBtn" aria-label="Reset to current date">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-9 9z"/><path d="M3 3v5h5"/></svg>
+            <span data-i18n="reset">Reset</span>
+          </button>
+          <button class="btn btn-secondary" id="nowBtn" aria-label="Set to current time">
+            <svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span data-i18n="now">Now</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="orbital-elements" role="region" aria-label="Orbital elements">
+        <div class="orbital-element">
+          <div class="label" data-i18n="geocentricDistance">Geocentric Distance</div>
+          <div class="value units" id="distVal" data-unit="km">—</div>
+        </div>
+        <div class="orbital-element">
+          <div class="label" data-i18n="eclipticLongitude">Ecliptic Longitude</div>
+          <div class="value units" id="lonVal" data-unit="°">—</div>
+        </div>
+        <div class="orbital-element">
+          <div class="label" data-i18n="eclipticLatitude">Ecliptic Latitude</div>
+          <div class="value units" id="latVal" data-unit="°">—</div>
+        </div>
+        <div class="orbital-element">
+          <div class="label" data-i18n="phaseAngle">Phase Angle</div>
+          <div class="value units" id="phaseVal" data-unit="°">—</div>
+        </div>
+        <div class="orbital-element">
+          <div class="label" data-i18n="illumination">Illumination</div>
+          <div class="value units" id="illumVal" data-unit="%">—</div>
+        </div>
+        <div class="orbital-element">
+          <div class="label" data-i18n="julianDayTDB">Julian Day (TDB)</div>
+          <div class="value" id="jdVal" style="font-size: 13px;">—</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="elp_data.js"></script>
+  <script src="lunar.js"></script>
+  <script>
+    // Initialize language for this page
+    const pageTranslations = window.I18N?.PAGES?.lunar || {};
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+
+    // Populate preset dates with translations
+    function populatePresetDates() {
+      const container = document.getElementById('presetDates');
+      if (!container || !pageTranslations[window.I18N.currentLanguage()]) return;
+
+      const t = pageTranslations[window.I18N.currentLanguage()];
+      const presets = [
+        { date: '21-07-1969', labelKey: 'apollo11Landing' },
+        { date: '20-07-1969', labelKey: 'apollo11Launch' },
+        { date: '04-10-1957', labelKey: 'sputnik1' },
+        { date: '12-04-1961', labelKey: 'gagarinFlight' },
+        { date: '16-11-2026', labelKey: 'today' },
+        { jd: '2451545.0', labelKey: 'j2000Epoch' }
+      ];
+
+      // Use presetDates string for now (comma-separated)
+      const labels = t.presetDates?.split(',') || [
+        'Apollo 11 Landing', 'Apollo 11 Launch', 'Sputnik 1', 'Gagarin Flight', 'Today', 'J2000.0 Epoch'
+      ];
+
+      container.innerHTML = presets.map((p, i) => {
+        const attr = p.date ? `data-date="${p.date}"` : `data-jd="${p.jd}"`;
+        return `<button class="preset-btn" ${attr}>${labels[i]}</button>`;
+      }).join('');
+    }
+
+    // Handle language change for dynamic text
+    window.onLanguageChange = function(lang) {
+      // Update play/pause button text
+      const playText = document.getElementById('playText');
+      if (playText) {
+        const isPlaying = playText.textContent.includes('Pause') || playText.textContent.includes('Pausa') || playText.textContent.includes('Pause') || playText.textContent.includes('Wiedergabe');
+        playText.textContent = window.I18N.t(isPlaying ? 'pause' : 'play', lang);
+      }
+      populatePresetDates();
+    };
+
+    // Initial population
+    populatePresetDates();
+  </script>
+</body>
+</html>

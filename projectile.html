@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Projectile Motion</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <style>
+    /* Projectile-specific overrides */
+    .page { max-width: 1200px; }
+    .mode-toggle { display: flex; gap: 8px; align-items: center; }
+    .mode-toggle label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--fg); }
+    .mode-toggle input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; }
+    .params-3d { display: none; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+    .params-3d.visible { display: grid; }
+    .canvas-3d { width: 100%; height: 100%; min-height: 500px; }
+    #canvas3d { width: 100%; height: 100%; display: block; }
+    @media (max-width: 768px) { .controls { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a href="index.html" class="back-link" aria-label="Back to simulations">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="back">Back</span>
+      </a>
+      <h1 data-i18n="title">Projectile Motion</h1>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+    <div class="sim-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvas"></canvas>
+        <div id="canvas3d" class="canvas-3d" style="display: none;"></div>
+      </div>
+      <div class="controls">
+        <div class="control-group mode-toggle">
+          <span class="control-label" style="margin-bottom: 4px;" data-i18n="mode">Mode</span>
+          <label><input type="radio" name="mode" value="2d" checked> 2D</label>
+          <label><input type="radio" name="mode" value="3d"> 3D</label>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="velocity">Velocity</span> <span class="control-value" id="velVal">25.0</span></label>
+          <input type="range" id="velocity" min="5" max="50" step="1" value="25" aria-label="Initial velocity in m/s">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="angle">Angle</span> <span class="control-value" id="angleVal">45°</span></label>
+          <input type="range" id="angle" min="0" max="90" step="1" value="45" aria-label="Launch angle in degrees">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="height">Height</span> <span class="control-value" id="heightVal">0.0</span></label>
+          <input type="range" id="height" min="0" max="50" step="1" value="0" aria-label="Initial height in meters">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="dragCoeff">Drag Coeff.</span> <span class="control-value" id="dragVal">0.00</span></label>
+          <input type="range" id="drag" min="0" max="0.1" step="0.005" value="0" aria-label="Drag coefficient">
+        </div>
+        <div class="control-group">
+          <label class="control-label" data-i18n="gravity">Gravity</label>
+          <select id="gravity">
+            <option value="9.81" data-i18n="earthGravity">Earth (9.81 m/s²)</option>
+            <option value="1.62" data-i18n="moonGravity">Moon (1.62 m/s²)</option>
+            <option value="3.71" data-i18n="marsGravity">Mars (3.71 m/s²)</option>
+            <option value="24.79" data-i18n="jupiterGravity">Jupiter (24.79 m/s²)</option>
+            <option value="0" data-i18n="zeroG">Zero-G</option>
+          </select>
+        </div>
+
+        <div class="control-group params-3d" id="params3d">
+          <label class="control-label"><span data-i18n="mass">Mass</span> <span class="control-value" id="massVal">0.45</span></label>
+          <input type="range" id="mass" min="0.1" max="2.0" step="0.05" value="0.45" aria-label="Mass in kg">
+        </div>
+        <div class="control-group params-3d">
+          <label class="control-label"><span data-i18n="volume">Volume</span> <span class="control-value" id="volumeVal">0.00058</span></label>
+          <input type="range" id="volume" min="0.0001" max="0.01" step="0.0001" value="0.00058" aria-label="Volume in m³">
+        </div>
+        <div class="control-group params-3d">
+          <label class="control-label"><span data-i18n="airDensity">Air Density</span> <span class="control-value" id="rhoVal">1.22</span></label>
+          <input type="range" id="rho" min="0.1" max="3.0" step="0.05" value="1.22" aria-label="Air density in kg/m³">
+        </div>
+        <div class="control-group params-3d">
+          <label class="control-label"><span data-i18n="dragC">Drag C</span> <span class="control-value" id="cDVal">0.50</span></label>
+          <input type="range" id="cD" min="0.1" max="1.5" step="0.05" value="0.5" aria-label="Drag coefficient">
+        </div>
+        <div class="control-group params-3d">
+          <label class="control-label"><span data-i18n="area">Area</span> <span class="control-value" id="areaVal">0.039</span></label>
+          <input type="range" id="area" min="0.001" max="0.2" step="0.005" value="0.039" aria-label="Cross-sectional area in m²">
+        </div>
+        <div class="control-group params-3d">
+          <label class="control-label"><span data-i18n="spinVector">Spin Vector</span> <span class="control-value" id="omegaVal">(0, 0, 30)</span></label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px;">
+            <div>
+              <label style="font-size: 10px; color: var(--fg-muted);">ωx (rad/s)</label>
+              <input type="range" id="omegaX" min="-200" max="200" step="5" value="0" aria-label="Spin X component">
+              <span class="control-value" id="omegaXVal">0</span>
+            </div>
+            <div>
+              <label style="font-size: 10px; color: var(--fg-muted);">ωy (rad/s)</label>
+              <input type="range" id="omegaY" min="-200" max="200" step="5" value="0" aria-label="Spin Y component">
+              <span class="control-value" id="omegaYVal">0</span>
+            </div>
+            <div>
+              <label style="font-size: 10px; color: var(--fg-muted);">ωz (rad/s)</label>
+              <input type="range" id="omegaZ" min="-200" max="200" step="5" value="30" aria-label="Spin Z component">
+              <span class="control-value" id="omegaZVal">30</span>
+            </div>
+          </div>
+        </div>
+        <div class="control-group params-3d">
+          <label class="control-label"><span data-i18n="magnusS">Magnus S</span> <span class="control-value" id="sVal">0.10</span></label>
+          <input type="range" id="sParam" min="0" max="0.3" step="0.01" value="0.10" aria-label="Magnus effect coefficient">
+        </div>
+        <div class="control-group params-3d">
+          <label class="control-label"><span data-i18n="timeStep">Time Step</span> <span class="control-value" id="dtVal">0.01</span></label>
+          <input type="range" id="dt" min="0.001" max="0.05" step="0.001" value="0.01" aria-label="Integration time step">
+        </div>
+        <div class="control-group params-3d">
+          <label class="control-label"><span data-i18n="maxTime">Max Time</span> <span class="control-value" id="tmaxVal">20</span></label>
+          <input type="range" id="tmax" min="5" max="60" step="1" value="20" aria-label="Maximum simulation time">
+        </div>
+        <div class="control-group params-3d">
+          <label class="control-label"><span data-i18n="azimuthAngle">Azimuth Angle</span> <span class="control-value" id="azimuthVal">0°</span></label>
+          <input type="range" id="azimuth" min="-180" max="180" step="1" value="0" aria-label="Launch azimuth angle in degrees">
+        </div>
+
+        <div class="control-group btn-group" style="justify-content: flex-end;">
+          <button class="btn btn-primary" id="playPauseBtn" aria-label="Play simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24" id="playIcon"><path d="M5 4v16l14-8-14-8z"/></svg>
+            <span id="playText" data-i18n="play">Play</span>
+          </button>
+          <button class="btn btn-secondary" id="resetBtn" aria-label="Reset simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-9 9z"/><path d="M3 3v5h5"/></svg>
+            <span data-i18n="reset">Reset</span>
+          </button>
+          <button class="btn btn-secondary" id="run3dBtn" style="display: none;" aria-label="Run 3D simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span data-i18n="run3d">Run 3D</span>
+          </button>
+        </div>
+      </div>
+      <div class="readouts" role="region" aria-label="Physics readings">
+        <div class="readout"><span class="readout-label" data-i18n="range">Range</span><span class="readout-value units" id="rangeVal" data-unit="m">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="maxHeight">Max Height</span><span class="readout-value units" id="maxHeightVal" data-unit="m">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="flightTime">Flight Time</span><span class="readout-value units" id="timeVal" data-unit="s">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="impactVelocity">Impact Velocity</span><span class="readout-value units" id="impactVelVal" data-unit="m/s">—</span></div>
+        <div class="readout" id="readout3d" style="display: none;"><span class="readout-label" data-i18n="range3d">3D Range</span><span class="readout-value units" id="range3dVal" data-unit="m">—</span></div>
+        <div class="readout" id="readout3d2" style="display: none;"><span class="readout-label" data-i18n="lateralDrift">Lateral Drift</span><span class="readout-value units" id="drift3dVal" data-unit="m">—</span></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/": "https://cdn.jsdelivr.net/npm/three@0.160.0/",
+        "three/addons/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+  <script type="module" src="projectile.js"></script>
+  <script>
+    // Initialize language for this page
+    const pageTranslations = window.I18N?.PAGES?.projectile || {};
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+
+    // Handle language change for dynamic text
+    window.onLanguageChange = function(lang) {
+      // Update play/pause button text
+      const playText = document.getElementById('playText');
+      if (playText) {
+        const isPlaying = playText.textContent.includes('Pause') || playText.textContent.includes('Pausa') || playText.textContent.includes('Pause') || playText.textContent.includes('Wiedergabe');
+        playText.textContent = window.I18N.t(isPlaying ? 'pause' : 'play', lang);
+      }
+    };
+  </script>
+</body>
+</html>

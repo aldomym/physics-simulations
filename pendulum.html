@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Simple Pendulum</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <style>
+    /* Pendulum-specific overrides */
+    .page { max-width: 1000px; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a href="index.html" class="back-link" aria-label="Back to simulations">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="back">Back</span>
+      </a>
+      <h1 data-i18n="title">Simple Pendulum</h1>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="sim-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvas"></canvas>
+      </div>
+
+      <div class="controls">
+        <div class="control-group">
+          <label class="control-label">
+            <span data-i18n="length">Length</span>
+            <span class="control-value" id="lengthVal">1.00</span>
+          </label>
+          <input type="range" id="length" min="0.3" max="3.0" step="0.05" value="1.0" aria-label="Pendulum length in meters">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            <span data-i18n="initialAngle">Initial Angle</span>
+            <span class="control-value" id="angleVal">30°</span>
+          </label>
+          <input type="range" id="angle" min="5" max="170" step="1" value="30" aria-label="Initial angle in degrees">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            <span data-i18n="damping">Damping</span>
+            <span class="control-value" id="dampingVal">0.00</span>
+          </label>
+          <input type="range" id="damping" min="0" max="0.5" step="0.01" value="0" aria-label="Damping coefficient">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" data-i18n="gravity">Gravity</label>
+          <select id="gravity">
+            <option value="9.81" data-i18n="earthGravity">Earth (9.81 m/s²)</option>
+            <option value="1.62" data-i18n="moonGravity">Moon (1.62 m/s²)</option>
+            <option value="3.71" data-i18n="marsGravity">Mars (3.71 m/s²)</option>
+            <option value="24.79" data-i18n="jupiterGravity">Jupiter (24.79 m/s²)</option>
+            <option value="0" data-i18n="zeroG">Zero-G</option>
+          </select>
+        </div>
+
+        <div class="control-group btn-group" style="justify-content: flex-end;">
+          <button class="btn btn-primary" id="playPauseBtn" aria-label="Play simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24" id="playIcon"><path d="M5 4v16l14-8-14-8z"/></svg>
+            <span id="playText" data-i18n="play">Play</span>
+          </button>
+          <button class="btn btn-secondary" id="resetBtn" aria-label="Reset simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-9 9z"/><path d="M3 3v5h5"/></svg>
+            <span data-i18n="reset">Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="readouts" role="region" aria-label="Physics readings">
+        <div class="readout">
+          <span class="readout-label" data-i18n="period">Period</span>
+          <span class="readout-value units" id="periodVal" data-unit="s">—</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label" data-i18n="frequency">Frequency</span>
+          <span class="readout-value units" id="freqVal" data-unit="Hz">—</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label" data-i18n="maxVelocity">Max Velocity</span>
+          <span class="readout-value units" id="velVal" data-unit="m/s">—</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label" data-i18n="energy">Energy</span>
+          <span class="readout-value units" id="energyVal" data-unit="J">—</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="pendulum.js"></script>
+  <script>
+    // Initialize language for this page
+    const pageTranslations = window.I18N?.PAGES?.pendulum || {};
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+
+    // Handle language change for dynamic text
+    window.onLanguageChange = function(lang) {
+      // Update play/pause button text
+      const playText = document.getElementById('playText');
+      if (playText) {
+        const isPlaying = playText.textContent.includes('Pause') || playText.textContent.includes('Pausa') || playText.textContent.includes('Pause');
+        playText.textContent = window.I18N.t(isPlaying ? 'pause' : 'play', lang);
+      }
+    };
+  </script>
+</body>
+</html>

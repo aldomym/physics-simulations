@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Mass-Spring System</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <style>
+    .page { max-width: 1000px; }
+    .mode-select { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .mode-select label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--fg); }
+    .mode-select input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; }
+    .params-driven { display: none; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+    .params-driven.visible { display: grid; }
+    .canvas-2d { width: 100%; height: 100%; min-height: 400px; }
+    #canvas { width: 100%; height: 100%; display: block; }
+    @media (max-width: 768px) { .controls { grid-template-columns: 1fr; } }
+
+    /* Language selector */
+    header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+    header h1 { flex: 1; min-width: 200px; }
+    .lang-selector { flex-shrink: 0; }
+    .lang-selector select { background: var(--bg-elevated); border: 1px solid var(--card-border); color: var(--fg); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; cursor: pointer; }
+    .lang-selector select:focus { outline: none; border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a href="index.html" class="back-link" aria-label="Back to simulations">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="back">Back</span>
+      </a>
+      <h1 data-i18n="title">Mass-Spring System</h1>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+    <div class="sim-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvas" class="canvas-2d"></canvas>
+      </div>
+      <div class="controls">
+        <div class="control-group mode-select">
+          <span class="control-label" style="margin-bottom: 4px;" data-i18n="mode">Mode</span>
+          <label><input type="radio" name="mode" value="shm" checked> <span data-i18n="shm">Simple Harmonic</span></label>
+          <label><input type="radio" name="mode" value="damped"> <span data-i18n="damped">Damped</span></label>
+          <label><input type="radio" name="mode" value="driven"> <span data-i18n="driven">Driven</span></label>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="mass">Mass</span> <span class="control-value" id="massVal">1.00</span></label>
+          <input type="range" id="mass" min="0.1" max="5.0" step="0.1" value="1.0" aria-label="Mass in kg">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="springConstant">Spring Constant</span> <span class="control-value" id="kVal">10.0</span></label>
+          <input type="range" id="k" min="1" max="50" step="1" value="10" aria-label="Spring constant k in N/m">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="initialDisplacement">Initial Displacement</span> <span class="control-value" id="x0Val">1.0</span></label>
+          <input type="range" id="x0" min="-3" max="3" step="0.1" value="1" aria-label="Initial displacement in m">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="initialVelocity">Initial Velocity</span> <span class="control-value" id="v0Val">0.0</span></label>
+          <input type="range" id="v0" min="-5" max="5" step="0.1" value="0" aria-label="Initial velocity in m/s">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="dampingCoeff">Damping Coeff.</span> <span class="control-value" id="bVal">0.0</span></label>
+          <input type="range" id="b" min="0" max="5" step="0.1" value="0" aria-label="Damping coefficient b in N·s/m">
+        </div>
+
+        <div class="control-group params-driven" id="paramsDriven">
+          <label class="control-label"><span data-i18n="driveAmplitude">Drive Amplitude</span> <span class="control-value" id="f0Val">1.0</span></label>
+          <input type="range" id="f0" min="0" max="10" step="0.1" value="1" aria-label="Driving force amplitude">
+        </div>
+        <div class="control-group params-driven">
+          <label class="control-label"><span data-i18n="driveFrequency">Drive Frequency</span> <span class="control-value" id="wDriveVal">3.16</span></label>
+          <input type="range" id="wDrive" min="0.1" max="20" step="0.1" value="3.16" aria-label="Driving angular frequency in rad/s">
+        </div>
+        <div class="control-group params-driven">
+          <label class="control-label"><span data-i18n="phase">Phase</span> <span class="control-value" id="phaseVal">0.0</span></label>
+          <input type="range" id="phase" min="-3.14" max="3.14" step="0.1" value="0" aria-label="Driving phase in rad">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="timeStep">Time Step</span> <span class="control-value" id="dtVal">0.01</span></label>
+          <input type="range" id="dt" min="0.001" max="0.1" step="0.001" value="0.01" aria-label="Integration time step">
+        </div>
+
+        <div class="control-group btn-group" style="justify-content: flex-end;">
+          <button class="btn btn-primary" id="playPauseBtn" aria-label="Play simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24" id="playIcon"><path d="M5 4v16l14-8-14-8z"/></svg>
+            <span id="playText" data-i18n="play">Play</span>
+          </button>
+          <button class="btn btn-secondary" id="resetBtn" aria-label="Reset simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-9 9z"/><path d="M3 3v5h5"/></svg>
+            <span data-i18n="reset">Reset</span>
+          </button>
+          <button class="btn btn-secondary" id="clearGraphBtn" aria-label="Clear energy graph">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span data-i18n="clearGraph">Clear Graph</span>
+          </button>
+        </div>
+      </div>
+      <div class="readouts" role="region" aria-label="Physics readings">
+        <div class="readout"><span class="readout-label" data-i18n="omega0">ω₀</span><span class="readout-value units" id="w0Val" data-unit="rad/s">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="period">Period</span><span class="readout-value units" id="periodVal" data-unit="s">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="totalEnergy">Total Energy</span><span class="readout-value units" id="energyVal" data-unit="J">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="dampingRatio">Damping Ratio</span><span class="readout-value" id="zetaVal">—</span></div>
+        <div class="readout" id="readoutDriven"><span class="readout-label" data-i18n="freqRatio">ω/ω₀</span><span class="readout-value" id="freqRatioVal">—</span></div>
+        <div class="readout" id="readoutDriven2"><span class="readout-label" data-i18n="amplitude">Amplitude</span><span class="readout-value units" id="ampVal" data-unit="m">—</span></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="mass-spring.js"></script>
+  <script>
+    // Initialize language for this page
+    const pageTranslations = window.I18N?.PAGES?.['mass-spring'] || {};
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+
+    // Handle language change for dynamic text
+    window.onLanguageChange = function(lang) {
+      // Update play/pause button text
+      const playText = document.getElementById('playText');
+      if (playText) {
+        const isPlaying = playText.textContent.includes('Pause') || playText.textContent.includes('Pausa') || playText.textContent.includes('Pause') || playText.textContent.includes('Wiedergabe');
+        playText.textContent = window.I18N.t(isPlaying ? 'pause' : 'play', lang);
+      }
+    };
+  </script>
+</body>
+</html>

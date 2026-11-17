@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Hydrogen Atom Orbitals</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <style>
+    .page { max-width: 1100px; }
+    .canvas-2d { width: 100%; height: 100%; min-height: 550px; }
+    #canvas { width: 100%; height: 100%; display: block; }
+
+    /* Section styling */
+    .controls-section { margin-bottom: 28px; }
+    .controls-section:last-child { margin-bottom: 0; }
+    .section-title { font-size: 11px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--card-border); }
+
+    /* Quantum numbers grid */
+    .quantum-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .quantum-control { background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 10px; padding: 20px 16px; }
+    .quantum-control label { display: block; font-size: 10px; font-weight: 500; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .quantum-control .value { font-size: 32px; font-weight: 700; color: var(--accent); font-family: "JetBrains Mono", monospace; margin-bottom: 12px; }
+    .quantum-control input[type="range"] { width: 100%; accent-color: var(--accent); height: 6px; }
+
+    /* View mode buttons */
+    .view-mode-buttons { display: flex; gap: 4px; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 10px; padding: 4px; }
+    .view-mode-buttons label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--fg); padding: 10px 16px; border-radius: 8px; transition: all 0.15s ease; white-space: nowrap; }
+    .view-mode-buttons label:hover { background: var(--bg); }
+    .view-mode-buttons input[type="radio"] { display: none; }
+    .view-mode-buttons label:has(input:checked) { background: var(--accent); color: var(--bg); box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3); }
+
+    /* Standard controls */
+    .control-row { display: flex; flex-direction: column; gap: 8px; }
+    .control-row > label { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--fg); gap: 12px; }
+    .control-row > label .control-value { font-size: 13px; font-family: "JetBrains Mono", monospace; color: var(--accent); font-weight: 500; }
+    .control-row input[type="range"] { width: 100%; accent-color: var(--accent); height: 6px; }
+    .control-row label.checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; color: var(--fg); }
+    .control-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+
+    /* Presets */
+    .presets { display: flex; gap: 8px; flex-wrap: wrap; }
+    .preset-btn { padding: 10px 18px; font-size: 12px; font-weight: 500; font-family: "Space Grotesk", sans-serif; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 8px; color: var(--fg); cursor: pointer; transition: all 0.15s ease; }
+    .preset-btn:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+    .preset-btn:active { transform: scale(0.98); }
+
+    /* Orbital info panel */
+    .orbital-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; padding: 20px; background: var(--bg-elevated); border: 1px solid var(--card-border); border-radius: 12px; margin-top: 8px; }
+    .orbital-info .item { display: flex; flex-direction: column; gap: 6px; }
+    .orbital-info .label { font-size: 10px; font-weight: 500; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.6px; }
+    .orbital-info .value { font-size: 20px; font-weight: 600; font-family: "JetBrains Mono", monospace; color: var(--fg); }
+    .orbital-info .value.accent { color: var(--accent); }
+
+    /* Colorbar */
+    .colorbar { height: 18px; border-radius: 9px; margin-top: 20px; border: 1px solid var(--card-border); overflow: hidden; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .quantum-controls { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .controls { grid-template-columns: 1fr; }
+      .orbital-info { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Language selector */
+    header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+    header h1 { flex: 1; min-width: 200px; }
+    .lang-selector { flex-shrink: 0; }
+    .lang-selector select { background: var(--bg-elevated); border: 1px solid var(--card-border); color: var(--fg); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; cursor: pointer; }
+    .lang-selector select:focus { outline: none; border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a href="index.html" class="back-link" aria-label="Back to simulations">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="back">Back</span>
+      </a>
+      <h1 data-i18n="title">Hydrogen Atom Orbitals</h1>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+    <div class="sim-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvas" class="canvas-2d"></canvas>
+      </div>
+      <div class="controls">
+        <!-- Section 1: Quantum Numbers -->
+        <section class="controls-section">
+          <div class="section-title" data-i18n="quantumNumbers">Quantum Numbers</div>
+          <div class="quantum-controls">
+            <div class="quantum-control">
+              <label data-i18n="principalN">Principal n</label>
+              <div class="value" id="nVal">1</div>
+              <input type="range" id="nInput" min="1" max="7" step="1" value="1" aria-label="Principal quantum number">
+            </div>
+            <div class="quantum-control">
+              <label data-i18n="azimuthalL">Azimuthal l</label>
+              <div class="value" id="lVal">0</div>
+              <input type="range" id="lInput" min="0" max="6" step="1" value="0" aria-label="Azimuthal quantum number">
+            </div>
+            <div class="quantum-control">
+              <label data-i18n="magneticM">Magnetic m</label>
+              <div class="value" id="mVal">0</div>
+              <input type="range" id="mInput" min="-6" max="6" step="1" value="0" aria-label="Magnetic quantum number">
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 2: Visualization -->
+        <section class="controls-section">
+          <div class="section-title" data-i18n="visualization">Visualization</div>
+          <div class="control-row">
+            <label><span data-i18n="viewMode">View Mode</span></label>
+            <div class="view-mode-buttons">
+              <label><input type="radio" name="view" value="density" checked><span data-i18n="density">Probability Density</span></label>
+              <label><input type="radio" name="view" value="radial"><span data-i18n="radial">Radial Distribution</span></label>
+              <label><input type="radio" name="view" value="angular"><span data-i18n="angular">Angular (3D slice)</span></label>
+            </div>
+          </div>
+          <div class="control-row" id="sliceRow">
+            <label><span data-i18n="slicePlane">Slice Plane</span> <span class="control-value" id="sliceVal">z=0 (xy-plane)</span></label>
+            <input type="range" id="sliceInput" min="0" max="2" step="1" value="0" aria-label="Slice plane">
+          </div>
+          <div class="control-row">
+            <label><span data-i18n="maxRadius">Max Radius</span> <span class="control-value" id="rMaxVal">30 a₀</span></label>
+            <input type="range" id="rMaxInput" min="10" max="100" step="5" value="30" aria-label="Maximum radius in Bohr radii">
+          </div>
+          <div class="control-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="logScale" checked> <span data-i18n="logScale">Logarithmic Scale</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Section 3: Quick Presets -->
+        <section class="controls-section">
+          <div class="section-title" data-i18n="quickPresets">Quick Presets</div>
+          <div class="presets">
+            <button class="preset-btn" id="preset1s" aria-label="1s orbital">1s</button>
+            <button class="preset-btn" id="preset2s" aria-label="2s orbital">2s</button>
+            <button class="preset-btn" id="preset2p" aria-label="2p orbital">2p</button>
+            <button class="preset-btn" id="preset3d" aria-label="3d orbital">3d</button>
+            <button class="preset-btn" id="preset4f" aria-label="4f orbital">4f</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- Orbital Info Panel -->
+      <section class="controls-section" style="margin-top: 0;">
+        <div class="section-title" data-i18n="orbitalProperties">Orbital Properties</div>
+        <div class="orbital-info" role="region" aria-label="Orbital properties">
+          <div class="item">
+            <div class="label" data-i18n="orbital">Orbital</div>
+            <div class="value accent" id="orbitalName">1s</div>
+          </div>
+          <div class="item">
+            <div class="label" data-i18n="energy">Energy</div>
+            <div class="value accent units" id="energyVal" data-unit="eV">-13.60</div>
+          </div>
+          <div class="item">
+            <div class="label" data-i18n="degeneracy">Degeneracy</div>
+            <div class="value" id="degeneracyVal">1</div>
+          </div>
+          <div class="item">
+            <div class="label" data-i18n="radialNodes">Radial Nodes</div>
+            <div class="value" id="nodesVal">0</div>
+          </div>
+          <div class="item">
+            <div class="label" data-i18n="avgR">⟨r⟩</div>
+            <div class="value accent units" id="avgRVal" data-unit="a₀">1.5</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Colorbar -->
+      <div class="colorbar" id="colorbar"></div>
+    </div>
+  </main>
+
+  <script src="hydrogen.js"></script>
+  <script>
+    // Initialize language for this page
+    const pageTranslations = window.I18N?.PAGES?.hydrogen || {};
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+  </script>
+</body>
+</html>

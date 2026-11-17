@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Spherical Pendulum</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/": "https://cdn.jsdelivr.net/npm/three@0.160.0/"
+      }
+    }
+  </script>
+  <style>
+    .page { max-width: 1200px; }
+    .mode-toggle { display: flex; gap: 8px; align-items: center; }
+    .mode-toggle label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--fg); }
+    .mode-toggle input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; }
+    .view-toggle { display: flex; gap: 8px; align-items: center; }
+    .view-toggle label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--fg); }
+    .view-toggle input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; }
+    .canvas-3d { width: 100%; height: 100%; min-height: 500px; }
+    #canvas3d { width: 100%; height: 100%; display: block; }
+    @media (max-width: 768px) { .controls { grid-template-columns: 1fr; } }
+
+    /* Language selector */
+    header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+    header h1 { flex: 1; min-width: 200px; }
+    .lang-selector { flex-shrink: 0; }
+    .lang-selector select { background: var(--bg-elevated); border: 1px solid var(--card-border); color: var(--fg); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; cursor: pointer; }
+    .lang-selector select:focus { outline: none; border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a href="index.html" class="back-link" aria-label="Back to simulations">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="back">Back</span>
+      </a>
+      <h1 data-i18n="title">Spherical Pendulum</h1>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+    <div class="sim-container">
+      <div class="canvas-wrapper">
+        <div id="canvas3d" class="canvas-3d"></div>
+      </div>
+      <div class="controls">
+        <div class="control-group mode-toggle">
+          <span class="control-label" style="margin-bottom: 4px;" data-i18n="mode">Mode</span>
+          <label><input type="radio" name="mode" value="sim" checked> <span data-i18n="simulate">Simulate</span></label>
+          <label><input type="radio" name="mode" value="trace"> <span data-i18n="trace">Trace Path</span></label>
+        </div>
+
+        <div class="control-group view-toggle">
+          <span class="control-label" style="margin-bottom: 4px;" data-i18n="view">View</span>
+          <label><input type="radio" name="view" value="3d" checked> <span data-i18n="view3d">3D</span></label>
+          <label><input type="radio" name="view" value="top"> <span data-i18n="viewTop">Top Down</span></label>
+          <label><input type="radio" name="view" value="side"> <span data-i18n="viewSide">Side</span></label>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="length">Length</span> <span class="control-value" id="lengthVal">1.00</span></label>
+          <input type="range" id="length" min="0.3" max="3.0" step="0.05" value="1.0" aria-label="Pendulum length in meters">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="initialTheta">Initial θ</span> <span class="control-value" id="thetaVal">30°</span></label>
+          <input type="range" id="theta" min="1" max="170" step="1" value="30" aria-label="Initial polar angle in degrees">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="initialPhi">Initial φ</span> <span class="control-value" id="phiVal">0°</span></label>
+          <input type="range" id="phi" min="-180" max="180" step="1" value="0" aria-label="Initial azimuthal angle in degrees">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="initialThetaDot">Initial θ̇</span> <span class="control-value" id="thetaDotVal">0.0</span></label>
+          <input type="range" id="thetaDot" min="-5" max="5" step="0.1" value="0" aria-label="Initial polar angular velocity">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="initialPhiDot">Initial φ̇</span> <span class="control-value" id="phiDotVal">2.0</span></label>
+          <input type="range" id="phiDot" min="-10" max="10" step="0.1" value="2" aria-label="Initial azimuthal angular velocity">
+        </div>
+        <div class="control-group">
+          <label class="control-label" data-i18n="gravity">Gravity</label>
+          <select id="gravity">
+            <option value="9.81" data-i18n="earthGravity">Earth (9.81 m/s²)</option>
+            <option value="1.62" data-i18n="moonGravity">Moon (1.62 m/s²)</option>
+            <option value="3.71" data-i18n="marsGravity">Mars (3.71 m/s²)</option>
+            <option value="24.79" data-i18n="jupiterGravity">Jupiter (24.79 m/s²)</option>
+            <option value="0" data-i18n="zeroG">Zero-G</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="timeStep">Time Step</span> <span class="control-value" id="dtVal">0.01</span></label>
+          <input type="range" id="dt" min="0.001" max="0.05" step="0.001" value="0.01" aria-label="Integration time step">
+        </div>
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="traceLength">Trace Length</span> <span class="control-value" id="traceLenVal">5000</span></label>
+          <input type="range" id="traceLen" min="100" max="20000" step="100" value="5000" aria-label="Maximum trace points">
+        </div>
+
+        <div class="control-group btn-group" style="justify-content: flex-end;">
+          <button class="btn btn-primary" id="playPauseBtn" aria-label="Play simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24" id="playIcon"><path d="M5 4v16l14-8-14-8z"/></svg>
+            <span id="playText" data-i18n="play">Play</span>
+          </button>
+          <button class="btn btn-secondary" id="resetBtn" aria-label="Reset simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-9 9z"/><path d="M3 3v5h5"/></svg>
+            <span data-i18n="reset">Reset</span>
+          </button>
+          <button class="btn btn-secondary" id="clearTraceBtn" aria-label="Clear trace">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span data-i18n="clearTrace">Clear Trace</span>
+          </button>
+        </div>
+      </div>
+      <div class="readouts" role="region" aria-label="Physics readings">
+        <div class="readout"><span class="readout-label" data-i18n="energy">Energy</span><span class="readout-value units" id="energyVal" data-unit="J">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="angularMomentum">Angular Momentum (Lz)</span><span class="readout-value units" id="lzVal" data-unit="kg·m²/s">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="theta">θ</span><span class="readout-value units" id="thetaCurrVal" data-unit="°">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="phi">φ</span><span class="readout-value units" id="phiCurrVal" data-unit="°">—</span></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/": "https://cdn.jsdelivr.net/npm/three@0.160.0/"
+      }
+    }
+  </script>
+  <script type="module" src="spherical-pendulum.js"></script>
+  <script>
+    // Initialize language for this page
+    const pageTranslations = window.I18N?.PAGES?.['spherical-pendulum'] || {};
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+
+    // Handle language change for dynamic text
+    window.onLanguageChange = function(lang) {
+      // Update play/pause button text
+      const playText = document.getElementById('playText');
+      if (playText) {
+        const isPlaying = playText.textContent.includes('Pause') || playText.textContent.includes('Pausa') || playText.textContent.includes('Pause') || playText.textContent.includes('Wiedergabe');
+        playText.textContent = window.I18N.t(isPlaying ? 'pause' : 'play', lang);
+      }
+    };
+  </script>
+</body>
+</html>
