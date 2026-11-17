@@ -1,48 +1,49 @@
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+(() => {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
 
-const massInput = document.getElementById('mass');
-const kInput = document.getElementById('k');
-const x0Input = document.getElementById('x0');
-const v0Input = document.getElementById('v0');
-const bInput = document.getElementById('b');
-const f0Input = document.getElementById('f0');
-const wDriveInput = document.getElementById('wDrive');
-const phaseInput = document.getElementById('phase');
-const dtInput = document.getElementById('dt');
-const playPauseBtn = document.getElementById('playPauseBtn');
-const playIcon = document.getElementById('playIcon');
-const playText = document.getElementById('playText');
-const resetBtn = document.getElementById('resetBtn');
-const clearGraphBtn = document.getElementById('clearGraphBtn');
-const modeRadios = document.querySelectorAll('input[name="mode"]');
+  const massInput = document.getElementById('mass');
+  const kInput = document.getElementById('k');
+  const x0Input = document.getElementById('x0');
+  const v0Input = document.getElementById('v0');
+  const bInput = document.getElementById('b');
+  const f0Input = document.getElementById('f0');
+  const wDriveInput = document.getElementById('wDrive');
+  const phaseInput = document.getElementById('phase');
+  const dtInput = document.getElementById('dt');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const playIcon = document.getElementById('playIcon');
+  const playText = document.getElementById('playText');
+  const resetBtn = document.getElementById('resetBtn');
+  const clearGraphBtn = document.getElementById('clearGraphBtn');
+  const modeRadios = document.querySelectorAll('input[name="mode"]');
 
-const massVal = document.getElementById('massVal');
-const kVal = document.getElementById('kVal');
-const x0Val = document.getElementById('x0Val');
-const v0Val = document.getElementById('v0Val');
-const bVal = document.getElementById('bVal');
-const f0Val = document.getElementById('f0Val');
-const wDriveVal = document.getElementById('wDriveVal');
-const phaseVal = document.getElementById('phaseVal');
-const dtVal = document.getElementById('dtVal');
+  const massVal = document.getElementById('massVal');
+  const kVal = document.getElementById('kVal');
+  const x0Val = document.getElementById('x0Val');
+  const v0Val = document.getElementById('v0Val');
+  const bVal = document.getElementById('bVal');
+  const f0Val = document.getElementById('f0Val');
+  const wDriveVal = document.getElementById('wDriveVal');
+  const phaseVal = document.getElementById('phaseVal');
+  const dtVal = document.getElementById('dtVal');
 
-const w0Val = document.getElementById('w0Val');
-const periodVal = document.getElementById('periodVal');
-const energyVal = document.getElementById('energyVal');
-const zetaVal = document.getElementById('zetaVal');
-const freqRatioVal = document.getElementById('freqRatioVal');
-const ampVal = document.getElementById('ampVal');
-const readoutDriven = document.getElementById('readoutDriven');
-const readoutDriven2 = document.getElementById('readoutDriven2');
-const paramsDriven = document.getElementById('paramsDriven');
+  const w0Val = document.getElementById('w0Val');
+  const periodVal = document.getElementById('periodVal');
+  const energyVal = document.getElementById('energyVal');
+  const zetaVal = document.getElementById('zetaVal');
+  const freqRatioVal = document.getElementById('freqRatioVal');
+  const ampVal = document.getElementById('ampVal');
+  const readoutDriven = document.getElementById('readoutDriven');
+  const readoutDriven2 = document.getElementById('readoutDriven2');
+  const paramsDriven = document.getElementById('paramsDriven');
 
-let m = 1.0, k = 10.0, x0 = 1.0, v0 = 0.0, b = 0.0, f0 = 1.0, wDrive = 3.16, phase = 0.0, dt = 0.01;
-let running = false, lastTime = 0, animationId = null;
-let x = 0, v = 0, t = 0;
-let mode = 'shm';
-let energyHistory = [], timeHistory = [], xHistory = [];
-let maxHistoryPoints = 500;
+  let m = 1.0, k = 10.0, x0 = 1.0, v0 = 0.0, b = 0.0, f0 = 1.0, wDrive = 3.16, phase = 0.0, dt = 0.01;
+  let running = false, lastTime = 0, animationId = null;
+  let x = 0, v = 0, simTime = 0;
+  let mode = 'shm';
+  let energyHistory = [], timeHistory = [], xHistory = [];
+  let maxHistoryPoints = 500;
 
 function resizeCanvas() {
   const rect = canvas.parentElement.getBoundingClientRect();
@@ -74,25 +75,25 @@ function computeParams() {
   return { w0, zeta, wd, period };
 }
 
-function getAcceleration(x, v, t) {
+function getAcceleration(x, v, simTime) {
   const { w0, zeta } = computeParams();
   let a = -w0 * w0 * x;
   if (mode === 'damped' || mode === 'driven') {
     a -= 2 * zeta * w0 * v;
   }
   if (mode === 'driven') {
-    a += (f0 / m) * Math.cos(wDrive * t + phase);
+    a += (f0 / m) * Math.cos(wDrive * simTime + phase);
   }
   return a;
 }
 
 function step(dt) {
   // Velocity Verlet for better energy conservation
-  const a = getAcceleration(x, v, t);
+  const a = getAcceleration(x, v, simTime);
   x += v * dt + 0.5 * a * dt * dt;
-  const aNew = getAcceleration(x, v + a * dt, t + dt);
+  const aNew = getAcceleration(x, v + a * dt, simTime + dt);
   v += 0.5 * (a + aNew) * dt;
-  t += dt;
+  simTime += dt;
 }
 
 function draw() {
@@ -208,7 +209,7 @@ function draw() {
   ctx.fillStyle = colors.muted;
   ctx.font = '11px "JetBrains Mono", monospace';
   ctx.textAlign = 'right';
-  ctx.fillText(`t = ${t.toFixed(2)} s`, w - 10, h - 10);
+  ctx.fillText(`t = ${simTime.toFixed(2)} s`, w - 10, h - 10);
 }
 
 function animate(time) {
@@ -255,7 +256,7 @@ function reset() {
   pauseAnimation();
   x = parseFloat(x0Input.value);
   v = parseFloat(v0Input.value);
-  t = 0;
+  simTime = 0;
   energyHistory = [];
   xHistory = [];
   draw();
@@ -340,3 +341,4 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 
 function init() { resizeCanvas(); updateParams(); draw(); }
 init();
+})();
