@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n="title">Free Fall</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="i18n.js"></script>
+  <style>
+    .page { max-width: 1000px; }
+    .mode-select { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .mode-select label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--fg); }
+    .mode-select input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; }
+    .params-air { display: none; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+    .params-air.visible { display: grid; }
+    .canvas-2d { width: 100%; height: 100%; min-height: 500px; }
+    #canvas { width: 100%; height: 100%; display: block; }
+    .medium-select { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .medium-select select { flex: 1; min-width: 140px; background: var(--bg-elevated); border: 1px solid var(--card-border); color: var(--fg); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; cursor: pointer; }
+    .medium-select select:focus { outline: none; border-color: var(--accent); }
+    @media (max-width: 768px) { .controls { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <a href="index.html" class="back-link" aria-label="Back to simulations">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="back">Back</span>
+      </a>
+      <h1 data-i18n="title">Free Fall</h1>
+      <div class="lang-selector">
+        <select id="langSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+    </header>
+    <div class="sim-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvas" class="canvas-2d"></canvas>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="planet">Planet</span></label>
+          <select id="planet" aria-label="Planet selection">
+            <option value="9.81" data-i18n="earth">Earth (9.81 m/s²)</option>
+            <option value="1.62" data-i18n="moon">Moon (1.62 m/s²)</option>
+            <option value="3.71" data-i18n="mars">Mars (3.71 m/s²)</option>
+            <option value="24.79" data-i18n="jupiter">Jupiter (24.79 m/s²)</option>
+            <option value="8.87" data-i18n="venus">Venus (8.87 m/s²)</option>
+            <option value="3.70" data-i18n="mercury">Mercury (3.70 m/s²)</option>
+            <option value="10.44" data-i18n="saturn">Saturn (10.44 m/s²)</option>
+            <option value="8.69" data-i18n="uranus">Uranus (8.69 m/s²)</option>
+            <option value="11.15" data-i18n="neptune">Neptune (11.15 m/s²)</option>
+            <option value="0.62" data-i18n="pluto">Pluto (0.62 m/s²)</option>
+            <option value="0" data-i18n="customGravity">Custom</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="initialHeight">Initial Height</span> <span class="control-value" id="heightVal">100.0</span></label>
+          <input type="range" id="initialHeight" min="10" max="1000" step="10" value="100" aria-label="Initial height in meters">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="initialVelocity">Initial Velocity</span> <span class="control-value" id="velVal">0.0</span></label>
+          <input type="range" id="initialVelocity" min="-50" max="50" step="1" value="0" aria-label="Initial velocity in m/s (downward positive)">
+        </div>
+
+        <div class="control-group mode-select">
+          <span class="control-label" style="margin-bottom: 4px;" data-i18n="airResistance">Air Resistance</span>
+          <label><input type="radio" name="airResistance" value="on" checked> <span data-i18n="airResistanceOn">On</span></label>
+          <label><input type="radio" name="airResistance" value="off"> <span data-i18n="airResistanceOff">Off</span></label>
+        </div>
+
+        <div class="control-group params-air" id="paramsAir">
+          <label class="control-label"><span data-i18n="mass">Mass</span> <span class="control-value" id="massVal">1.00</span></label>
+          <input type="range" id="mass" min="0.01" max="10.0" step="0.01" value="1.0" aria-label="Mass in kg">
+        </div>
+
+        <div class="control-group params-air">
+          <label class="control-label"><span data-i18n="crossSection">Cross Section</span> <span class="control-value" id="areaVal">0.010</span></label>
+          <input type="range" id="crossSection" min="0.001" max="1.0" step="0.001" value="0.01" aria-label="Cross-sectional area in m²">
+        </div>
+
+        <div class="control-group params-air">
+          <label class="control-label"><span data-i18n="dragCoeff">Drag Coeff.</span> <span class="control-value" id="cdVal">0.47</span></label>
+          <input type="range" id="dragCoeff" min="0.1" max="2.0" step="0.01" value="0.47" aria-label="Drag coefficient">
+        </div>
+
+        <div class="control-group params-air">
+          <label class="control-label"><span data-i18n="medium">Medium</span></label>
+          <div class="medium-select">
+            <select id="mediumPreset" aria-label="Medium preset">
+              <option value="custom" data-i18n="presetCustom">Custom</option>
+              <option value="vacuum" data-i18n="presetVacuum">Vacuum</option>
+              <option value="air" data-i18n="presetAir" selected>Air (STP)</option>
+              <option value="water" data-i18n="presetWater">Water</option>
+              <option value="glycerin" data-i18n="presetGlycerin">Glycerin</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-group params-air" id="densityGroup">
+          <label class="control-label"><span data-i18n="mediumDensity">Medium Density</span> <span class="control-value" id="densityVal">1.225</span></label>
+          <input type="range" id="mediumDensity" min="0" max="2000" step="1" value="1.225" aria-label="Medium density in kg/m³">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label"><span data-i18n="timeStep">Time Step</span> <span class="control-value" id="dtVal">0.01</span></label>
+          <input type="range" id="timeStep" min="0.001" max="0.1" step="0.001" value="0.01" aria-label="Integration time step">
+        </div>
+
+        <div class="control-group btn-group" style="justify-content: flex-end;">
+          <button class="btn btn-primary" id="playPauseBtn" aria-label="Play simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24" id="playIcon"><path d="M5 4v16l14-8-14-8z"/></svg>
+            <span id="playText" data-i18n="play">Play</span>
+          </button>
+          <button class="btn btn-secondary" id="resetBtn" aria-label="Reset simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-9 9z"/><path d="M3 3v5h5"/></svg>
+            <span data-i18n="reset">Reset</span>
+          </button>
+        </div>
+      </div>
+      <div class="readouts" role="region" aria-label="Physics readings">
+        <div class="readout"><span class="readout-label" data-i18n="time">Time</span><span class="readout-value units" id="timeVal" data-unit="s">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="height">Height</span><span class="readout-value units" id="heightReadoutVal" data-unit="m">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="velocity">Velocity</span><span class="readout-value units" id="velReadoutVal" data-unit="m/s">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="terminalVelocity">Terminal Velocity</span><span class="readout-value units" id="termVelVal" data-unit="m/s">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="impactTime">Impact Time</span><span class="readout-value units" id="impactTimeVal" data-unit="s">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="impactVelocity">Impact Velocity</span><span class="readout-value units" id="impactVelVal" data-unit="m/s">—</span></div>
+        <div class="readout"><span class="readout-label" data-i18n="distanceFallen">Distance Fallen</span><span class="readout-value units" id="distFallenVal" data-unit="m">—</span></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="free-fall.js"></script>
+  <script>
+    // Initialize language for this page
+    const pageTranslations = window.I18N?.PAGES?.['free-fall'] || {};
+    window.I18N?.initLanguageSelector(pageTranslations);
+    window.I18N?.setLanguage(window.I18N.currentLanguage(), pageTranslations);
+
+    // Handle language change for dynamic text
+    window.onLanguageChange = function(lang) {
+      // Update play/pause button text
+      const playText = document.getElementById('playText');
+      if (playText) {
+        const isPlaying = playText.textContent.includes('Pause') || playText.textContent.includes('Pausa') || playText.textContent.includes('Pause') || playText.textContent.includes('Wiedergabe');
+        playText.textContent = window.I18N.t(isPlaying ? 'pause' : 'play', lang);
+      }
+      // Update medium preset options
+      updateMediumPresetOptions(lang);
+    };
+
+    function updateMediumPresetOptions(lang) {
+      const select = document.getElementById('mediumPreset');
+      if (!select || !window.I18N) return;
+      const options = select.querySelectorAll('option');
+      options.forEach(opt => {
+        const key = opt.getAttribute('data-i18n');
+        if (key) {
+          opt.textContent = window.I18N.t(key, lang);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
